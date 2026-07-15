@@ -3,20 +3,6 @@
 This repository contains the programming project and lab assignments for the
 Distributed Systems course.
 
-## Repository structure
-
-```
-DS-Project/
-├── docs/                          # Assignment briefs and the lab manual
-│   ├── DS_Assign_LB_2024.pdf      # Programming project spec (Load Balancer)
-│   ├── Lab Manual.pdf             # All lab briefs (Assignments 1–8)
-│   └── WSL_CLI_Guide.md           # CLI cheat-sheet for doing this work in WSL
-├── loadbalancer/                  # Programming project: Assignment 1 (Load Balancer)
-│   └── README.md                  # Full write-up: overview, install, usage, tests, deployment
-└── labs/
-    ├── Mutual Exclusion/          # Assignment 6: token-ring mutual exclusion (Java/UDP)
-    └── Web Services/              # Assignment 8: JAX-WS calculator web service
-```
 
 ## Programming project
 
