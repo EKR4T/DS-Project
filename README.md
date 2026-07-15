@@ -14,9 +14,9 @@ deployment instructions.
 
 ## Labs
 
-- **Mutual Exclusion (Assignment 6):** `labs/Mutual Exclusion/` — a 3-process
+- **Mutual Exclusion (Assignment 6):**  — a 3-process
   UDP token-ring demo (`TokenServer1`, `TokenClient1`, `TokenClient2`).
-- **Web Services (Assignment 8):** `labs/Web Services/` — a JAX-WS `Calculator`
+- **Web Services (Assignment 8):**  — a JAX-WS `Calculator`
   service, run without NetBeans/GlassFish (see the WSL guide below for the
   command-line workaround).
 
