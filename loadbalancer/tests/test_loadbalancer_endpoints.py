@@ -148,3 +148,27 @@ def test_route_request_unreachable_server_returns_400(monkeypatch):
 
     assert resp.status_code == 400
     assert "does not exist" in resp.get_json()["message"]
+
+
+def test_route_request_unregistered_endpoint_returns_400(monkeypatch):
+    """A live backend that responds 404 (e.g. Flask's default page) must be
+    translated into the spec's JSON error, not passed through as raw HTML."""
+    client, _, _ = _client(monkeypatch)
+    lb_app.spawn_server("server1")
+
+    class FakeNotFoundResponse:
+        status_code = 404
+        content = b"<!doctype html><title>404 Not Found</title>"
+        headers = {"Content-Type": "text/html"}
+
+    def fake_get(url, timeout=5):
+        return FakeNotFoundResponse()
+
+    monkeypatch.setattr(lb_app.requests, "get", fake_get)
+
+    resp = client.get("/other")
+
+    assert resp.status_code == 400
+    body = resp.get_json()
+    assert body["status"] == "failure"
+    assert "'/other' endpoint does not exist in server replicas" in body["message"]

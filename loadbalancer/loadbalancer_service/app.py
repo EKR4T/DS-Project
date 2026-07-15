@@ -14,6 +14,7 @@ imported by the test suite without a Docker daemon present.
 import os
 import random
 import threading
+import time
 
 import requests
 from flask import Flask, jsonify, request
@@ -23,6 +24,8 @@ from consistent_hash import ConsistentHashMap, DEFAULT_SLOTS, DEFAULT_VIRTUAL_SE
 NETWORK_NAME = os.environ.get("LB_NETWORK", "net1")
 SERVER_IMAGE = os.environ.get("SERVER_IMAGE", "loadbalancer-server:latest")
 DEFAULT_N = int(os.environ.get("LB_N", "3"))
+HEARTBEAT_INTERVAL = float(os.environ.get("LB_HEARTBEAT_INTERVAL", "2"))
+HEARTBEAT_TIMEOUT = float(os.environ.get("LB_HEARTBEAT_TIMEOUT", "2"))
 
 app = Flask(__name__)
 lock = threading.Lock()
@@ -76,6 +79,35 @@ def remove_server(hostname: str) -> None:
 def bootstrap(n: int) -> None:
     for _ in range(n):
         spawn_server(_random_hostname())
+
+
+def _is_alive(hostname: str) -> bool:
+    try:
+        resp = requests.get(f"http://{hostname}:5000/heartbeat", timeout=HEARTBEAT_TIMEOUT)
+        return resp.status_code == 200
+    except requests.RequestException:
+        return False
+
+
+def _check_replicas_once() -> None:
+    """One heartbeat pass: replace any replica that fails to respond, keeping N constant."""
+    with lock:
+        replicas = list(hash_map.servers)
+    for hostname in replicas:
+        if _is_alive(hostname):
+            continue
+        with lock:
+            if hostname not in hash_map.servers:
+                continue  # already handled by a concurrent /rm or a prior pass
+            remove_server(hostname)
+            spawn_server(_random_hostname())
+
+
+def heartbeat_monitor() -> None:
+    """Background loop maintaining N replicas by replacing failed ones (Task 3)."""
+    while True:
+        time.sleep(HEARTBEAT_INTERVAL)
+        _check_replicas_once()
 
 
 @app.route("/rep", methods=["GET"])
@@ -146,14 +178,26 @@ def route_request(path):
 
     try:
         upstream = requests.get(f"http://{server}:5000/{path}", timeout=5)
-        return upstream.content, upstream.status_code, dict(upstream.headers)
     except requests.RequestException:
         return jsonify(
             message=f"<Error> '/{path}' endpoint does not exist in server replicas",
             status="failure",
         ), 400
 
+    if upstream.status_code == 404:
+        return jsonify(
+            message=f"<Error> '/{path}' endpoint does not exist in server replicas",
+            status="failure",
+        ), 400
+
+    return upstream.content, upstream.status_code, dict(upstream.headers)
+
 
 if __name__ == "__main__":
     bootstrap(DEFAULT_N)
-    app.run(host="0.0.0.0", port=5000)
+    threading.Thread(target=heartbeat_monitor, daemon=True).start()
+    # threaded=True: each incoming client request forwards synchronously to a
+    # backend replica, so without this the load balancer itself would only
+    # ever handle one client at a time - defeating the "route requests from
+    # several clients asynchronously" requirement.
+    app.run(host="0.0.0.0", port=5000, threaded=True)

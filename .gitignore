@@ -11,9 +11,15 @@ venv/
 .coverage
 htmlcov/
 
-# Generated analysis charts (Task 4) — keep the folder, ignore the generated images
+# Generated analysis charts (Task 4) — the README embeds specific PNGs from a
+# real run as submission evidence, so those are tracked; anything else
+# regenerated locally (e.g. re-running analyze.py) stays ignored.
 loadbalancer/analysis/results/*
 !loadbalancer/analysis/results/.gitkeep
+!loadbalancer/analysis/results/a1_bar_chart.png
+!loadbalancer/analysis/results/a2_line_chart.png
+!loadbalancer/analysis/results/a4_bar_chart_modified.png
+!loadbalancer/analysis/results/a4_line_chart_modified.png
 
 # OS / editor cruft
 .DS_Store

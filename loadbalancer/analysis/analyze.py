@@ -18,6 +18,7 @@ import asyncio
 import collections
 import os
 import re
+import sys
 
 import aiohttp
 import matplotlib
@@ -26,26 +27,54 @@ import requests
 matplotlib.use("Agg")  # headless: just save PNGs, don't try to open a display
 import matplotlib.pyplot as plt  # noqa: E402
 
-LB_URL = os.environ.get("LB_URL", "http://localhost:5000")
+if sys.platform == "win32":
+    # aiohttp's documented workaround: the default ProactorEventLoop raises
+    # spurious WinError 52 ("duplicate name exists on the network") under
+    # many rapid loopback connects, worse still with Docker Desktop's virtual
+    # network adapters in the mix. SelectorEventLoop doesn't hit this.
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+# 127.0.0.1 (not "localhost") avoids an extra DNS lookup per connection.
+LB_URL = os.environ.get("LB_URL", "http://127.0.0.1:5000")
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), "results")
+CONCURRENCY_LIMIT = int(os.environ.get("LB_ANALYSIS_CONCURRENCY", "50"))
+MAX_RETRIES = 3
 
 
 async def _fire_one(session: aiohttp.ClientSession):
-    async with session.get(f"{LB_URL}/home") as resp:
-        if resp.status != 200:
-            return None
-        body = await resp.json()
-        match = re.search(r"Server:\s*(\S+)", body.get("message", ""))
-        return match.group(1) if match else None
+    for attempt in range(MAX_RETRIES):
+        try:
+            async with session.get(f"{LB_URL}/home") as resp:
+                if resp.status != 200:
+                    return None
+                body = await resp.json()
+                match = re.search(r"Server:\s*(\S+)", body.get("message", ""))
+                return match.group(1) if match else None
+        except (aiohttp.ClientError, asyncio.TimeoutError, OSError):
+            # Windows/Docker Desktop's loopback networking occasionally drops
+            # a connection under load; retry a couple of times before giving
+            # up on this request (it's client-side churn, not an LB failure).
+            if attempt == MAX_RETRIES - 1:
+                return None
+            await asyncio.sleep(0.05 * (attempt + 1))
 
 
 async def fire_requests(n: int) -> "collections.Counter[str]":
     counts: collections.Counter = collections.Counter()
-    async with aiohttp.ClientSession() as session:
+    # A bounded connector caps how many sockets are open at once; firing all
+    # n requests unbounded exhausts Windows' loopback connection table well
+    # before it exhausts the load balancer.
+    connector = aiohttp.TCPConnector(limit=CONCURRENCY_LIMIT)
+    timeout = aiohttp.ClientTimeout(total=30)
+    async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
         tasks = [_fire_one(session) for _ in range(n)]
-        for result in await asyncio.gather(*tasks):
-            if result:
-                counts[result] += 1
+        results = await asyncio.gather(*tasks)
+    dropped = sum(1 for r in results if r is None)
+    if dropped:
+        print(f"  ({dropped}/{n} requests dropped/failed at the client)")
+    for result in results:
+        if result:
+            counts[result] += 1
     return counts
 
 

@@ -25,4 +25,7 @@ def heartbeat():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    # threaded=True: Flask's dev server is single-threaded by default, which
+    # would serialize every request through this replica - defeating the
+    # concurrent/async request handling the assignment requires.
+    app.run(host="0.0.0.0", port=5000, threaded=True)
