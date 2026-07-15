@@ -22,10 +22,6 @@ deployment instructions.
 
 ## Working in WSL
 
-[`docs/WSL_CLI_Guide.md`](docs/WSL_CLI_Guide.md) has copy-paste-ready commands for
-setting up WSL, running the Mutual Exclusion lab across multiple terminals,
-self-hosting the Web Services lab without an IDE/app-server, and building/running
-the Load Balancer project with Docker.
 
 ## License
 
