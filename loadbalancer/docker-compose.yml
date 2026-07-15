@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  loadbalancer:
+    build: ./loadbalancer_service
+    image: loadbalancer-lb:latest
+    container_name: lb
+    ports:
+      - "5000:5000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    # Required so this container can spawn/stop sibling server containers
+    # via the host's Docker daemon (see docs/DS_Assign_LB_2024.pdf Appendix C).
+    privileged: true
+    environment:
+      LB_NETWORK: net1
+      SERVER_IMAGE: loadbalancer-server:latest
+      LB_N: "3"
+    networks:
+      net1:
+        aliases:
+          - lb
+
+networks:
+  net1:
+    name: net1
+    driver: bridge

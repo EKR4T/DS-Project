@@ -1,0 +1,20 @@
+# Java build artifacts (compiled .class files already committed under labs/ are unaffected)
+*.class
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Generated analysis charts (Task 4) — keep the folder, ignore the generated images
+loadbalancer/analysis/results/*
+!loadbalancer/analysis/results/.gitkeep
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
