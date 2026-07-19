@@ -1,0 +1,7 @@
+{
+    "python.analysis.extraPaths": [
+        "./loadbalancer/loadbalancer_service",
+        "./loadbalancer/server"
+    ],
+    "python.defaultInterpreterPath": "./loadbalancer/.venv/Scripts/python.exe"
+}
