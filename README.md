@@ -12,16 +12,6 @@ full test suite and a Task 4 performance-analysis script. See
 [`loadbalancer/README.md`](loadbalancer/README.md) for setup, usage, testing, and
 deployment instructions.
 
-## Labs
-
-- **Mutual Exclusion (Assignment 6):**  — a 3-process
-  UDP token-ring demo (`TokenServer1`, `TokenClient1`, `TokenClient2`).
-- **Web Services (Assignment 8):**  — a JAX-WS `Calculator`
-  service, run without NetBeans/GlassFish 
-  ( `CalculatorClient` , `CalculatorPublisher`).
-## Working in WSL
-
-
 ## License
 
 [MIT](LICENSE)
